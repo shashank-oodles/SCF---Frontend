@@ -1,5 +1,5 @@
-import type { TitleFilterConfig } from '../types';
-import { FilterTable } from './FilterTable';
+import { Link } from 'react-router-dom';
+import { formatTitleLabel, type TitleFilterConfig } from '../types';
 
 interface TitleCardProps {
   config: TitleFilterConfig;
@@ -10,50 +10,43 @@ export function TitleCard({ config }: TitleCardProps) {
   const skipCount = config.filters.filter((f) => f.action === 'skip').length;
 
   return (
-    <section className="rounded-xl border border-ink-200/80 bg-white/80 p-5 shadow-sm backdrop-blur">
+    <Link
+      to={`/titles/${encodeURIComponent(config.titleId)}`}
+      className="block rounded-xl border border-ink-200/80 bg-white/80 p-5 shadow-sm backdrop-blur transition hover:border-accent/40 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-accent">
-            Configured title
+            {config.kind === 'movie' ? 'Movie' : 'Show episode'}
           </p>
           <h2 className="mt-1 font-display text-xl font-semibold text-ink-900">
-            {config.title}
+            {formatTitleLabel(config)}
           </h2>
+          {config.kind === 'show' && config.episodeName && (
+            <p className="mt-1 text-sm text-ink-500">
+              Show: {config.title}
+            </p>
+          )}
           <p className="mt-1 text-sm text-ink-500">
             ID: <code className="text-ink-700">{config.titleId}</code> · Provider:{' '}
             {config.provider}
           </p>
+          {config.videoUrl && (
+            <p className="mt-2 max-w-xl truncate text-xs text-ink-500">
+              {config.videoUrl}
+            </p>
+          )}
         </div>
         <div className="text-right text-sm text-ink-500">
           <p>
             <span className="font-medium text-ink-900">{muteCount}</span> mute ·{' '}
             <span className="font-medium text-ink-900">{skipCount}</span> skip
           </p>
+          <p className="mt-2 text-xs font-medium text-accent">
+            Edit timestamps →
+          </p>
         </div>
       </div>
-
-      <div className="mt-4">
-        <h3 className="mb-2 text-sm font-medium text-ink-700">
-          Match patterns
-        </h3>
-        <ul className="flex flex-wrap gap-2">
-          {config.matchPatterns.map((pattern) => (
-            <li
-              key={pattern}
-              className="rounded-md bg-ink-100 px-2 py-1 font-mono text-xs text-ink-700"
-            >
-              {pattern}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="mt-5">
-        <h3 className="mb-2 text-sm font-medium text-ink-700">
-          Timestamp filters
-        </h3>
-        <FilterTable filters={config.filters} />
-      </div>
-    </section>
+    </Link>
   );
 }
