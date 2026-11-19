@@ -1,7 +1,9 @@
 import type {
   ApiErrorResponse,
   ApiSuccessResponse,
+  CreateTitlePayload,
   HealthResponse,
+  PublishTitlePayload,
   TitleFilterConfig,
 } from '../types';
 
@@ -9,13 +11,20 @@ const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ||
   'http://localhost:3001/api';
 
-async function getJson<T>(path: string): Promise<T> {
+async function requestJson<T>(
+  path: string,
+  init?: RequestInit
+): Promise<T> {
   let response: Response;
 
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
+      ...init,
+      headers: {
+        Accept: 'application/json',
+        ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+        ...init?.headers,
+      },
     });
   } catch {
     throw new Error(
@@ -32,26 +41,61 @@ async function getJson<T>(path: string): Promise<T> {
 
   if (!response.ok) {
     const err = body as ApiErrorResponse;
-    throw new Error(err?.message || `Request failed (${response.status})`);
+    const detail =
+      err?.errors && err.errors.length > 0
+        ? ` (${err.errors.join('; ')})`
+        : '';
+    throw new Error(
+      `${err?.message || `Request failed (${response.status})`}${detail}`
+    );
   }
 
   return body as T;
 }
 
 export async function checkHealth(): Promise<HealthResponse> {
-  return getJson<HealthResponse>('/health');
+  return requestJson<HealthResponse>('/health');
 }
 
 export async function fetchAllFilters(): Promise<TitleFilterConfig[]> {
-  const body = await getJson<ApiSuccessResponse<TitleFilterConfig[]>>('/filters');
+  const body = await requestJson<ApiSuccessResponse<TitleFilterConfig[]>>(
+    '/filters'
+  );
   return body.data;
 }
 
 export async function fetchFiltersByTitleId(
   titleId: string
 ): Promise<TitleFilterConfig> {
-  const body = await getJson<ApiSuccessResponse<TitleFilterConfig>>(
+  const body = await requestJson<ApiSuccessResponse<TitleFilterConfig>>(
     `/filters/${encodeURIComponent(titleId)}`
+  );
+  return body.data;
+}
+
+export async function createTitle(
+  payload: CreateTitlePayload
+): Promise<TitleFilterConfig> {
+  const body = await requestJson<ApiSuccessResponse<TitleFilterConfig>>(
+    '/filters',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
+  return body.data;
+}
+
+export async function publishTitle(
+  titleId: string,
+  payload: PublishTitlePayload
+): Promise<TitleFilterConfig> {
+  const body = await requestJson<ApiSuccessResponse<TitleFilterConfig>>(
+    `/filters/${encodeURIComponent(titleId)}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }
   );
   return body.data;
 }
